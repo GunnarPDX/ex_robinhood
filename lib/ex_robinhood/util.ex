@@ -32,13 +32,15 @@ defmodule ExRobinhood.Util do
     "fa", "fb", "fc", "fd", "fe", "ff"
   ]
 
-  # produces token like: "4d36ca38-b507-4782-f8ae-465e44fcb6fd95"
+  # produces token like: "4d36ca38-b507-4782-f8ae-465e66fcb6fd95"
+  # NOT WORKING!!!
   def gen_device_token do
 
-    hexa = E.take_random(@hexa, 17)
+    # hexa = E.take_random(@hexa, 17)
+    rand = rand_nums()
 
     for i <- 0..16, into: "" do
-      block = E.at(hexa, i)
+      block = E.at(@hexa, E.at(rand, i))
 
       if (i == 3) or (i == 5) or (i == 7) or (i == 9) do
         block <> "-"
@@ -47,6 +49,14 @@ defmodule ExRobinhood.Util do
       end
     end
 
+  end
+
+  def rand_nums do
+    for i <- 0..16 do
+      r = :random.uniform()
+      rand = 4294967296.0 * r
+      (Kernel.trunc(rand) >>> ((3 &&& i) <<< 3)) &&& 255
+    end
   end
 
   

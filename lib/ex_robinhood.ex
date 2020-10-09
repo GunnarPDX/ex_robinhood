@@ -17,9 +17,10 @@ defmodule ExRobinhood do
     "User-Agent" => "Robinhood/823 (iPhone; iOS 7.1.2; Scale/2.00)"
   }
 
-  # ExRobinhood.login("example@example.com", "example_password", ExRobinhood.Util.gen_device_token)
+  # ExRobinhood.login("example@example.com", "example_password", "")
 
-  def login(username, password, device_token) do
+
+  def login(username, password, device_token, mfa_code \\ "") do
     body = URI.encode_query(%{
       "password" => password,
       "username" => username,
@@ -28,7 +29,7 @@ defmodule ExRobinhood do
       "expires_in" => "86400",
       "scope" => "internal",
       "device_token" => device_token,
-      "challenge_type" => "email"
+      "mfa_code" => mfa_code
     })
     |> IO.inspect()
 
@@ -46,6 +47,8 @@ defmodule ExRobinhood do
 
     end
   end
+
+
 
 
 
