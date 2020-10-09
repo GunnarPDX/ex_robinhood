@@ -35,7 +35,7 @@ defmodule ExRobinhood.Endpoints do
   def edocuments,
       do: "#{@api_url}/documents/"
 
-  def instruments(instrument_id / "", option / ""),
+  def instruments(instrument_id \\ "", option \\ ""),
       do: "#{@api_url}/instruments/#{instrument_id}/#{option}"
 
   def margin_upgrades,

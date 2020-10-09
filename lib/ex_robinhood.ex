@@ -15,7 +15,11 @@ defmodule ExRobinhood do
     "User-Agent": "Robinhood/823 (iPhone; iOS 7.1.2; Scale/2.00)"
   ]
 
-  def login
+  def login(username, password) do
+
+  end
+
+  """
 
   def logout
 
@@ -94,6 +98,6 @@ defmodule ExRobinhood do
   def get_open_orders
 
   def cancel_order
-
+"""
 
 end
