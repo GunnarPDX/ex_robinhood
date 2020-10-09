@@ -1,5 +1,11 @@
 defmodule ExRobinhood.Endpoints do
 
+  @moduledoc """
+  Documentation for `ExRobinhood`.`Endpoints`
+
+  Functions return endpoint for req
+  """
+
   @api_url "https://api.robinhood.com"
 
   def login,
