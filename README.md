@@ -20,3 +20,10 @@
 - Make sure you keep this saved
 
 
+### 2FA
+
+- if you get a text msg with a security code
+- Re-run `login` with your 2fa code added like this:
+```elixir
+    ExRobinhood.login("example@example.com", "example_password", "device_token", "2fa_code")
+```
