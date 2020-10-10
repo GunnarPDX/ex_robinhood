@@ -9,8 +9,9 @@ defmodule ExRobinhood do
   @client_id "c82SH0WZOsabOXGP2sxqcj34FxkvfnWRZBKlBjFS"
 
   @doc """
-
+  Login
   """
+  @spec login(string, string) :: {:ok, string} | {:error, string}
 
   def login(username, password) do
     device_token = UUID.uuid4()
@@ -36,12 +37,14 @@ defmodule ExRobinhood do
     url
     |> post(body, headers)
     |> handle_login()
+    |> IO.inspect()
 
   end
 
   defp handle_login({:ok, res}) do
     res.body
     |> Jason.decode!()
+    |> process_auth_response()
 
   end
 
@@ -54,9 +57,32 @@ defmodule ExRobinhood do
        do: {:error, "resp could not be processed"}
 
 
-  @doc """
+  @doc false
 
+  defp process_auth_response(%{"access_token" => access_token, "refresh_token" => refresh_token} = body) do
+    Account.update(:access_token, access_token)
+    Account.update(:refresh_token, refresh_token)
+    Account.update(:password, "")
+    Account.update(:username, "")
+
+    {:ok, "Success"}
+  end
+
+  defp process_auth_response(%{"challenge" => %{"id" => id, "status" => "issued"}} = body) do
+    Account.update(:challenge_id, id)
+
+    {:ok, "Challenge Required"}
+  end
+
+  defp process_auth_response(%{"status" => "validated"} = body) do
+    login_after_challenge
+  end
+
+
+  @doc """
+  Challenge
   """
+  @spec challenge(string) :: {:ok, string} | {:error, string}
 
   def challenge(sms_code) do
     challenge_id = Account.get(:challenge_id)
@@ -65,7 +91,7 @@ defmodule ExRobinhood do
 
     headers = :headers
               |> Account.get()
-              |> Map.merge(%{ "X-ROBINHOOD-CHALLENGE-RESPONSE-ID" => challenge_id})
+              |> Map.merge(%{ "X-ROBINHOOD-CHALLENGE-RESPONSE-ID" => challenge_id}, fn _k, v1, v2 -> v2 end)
 
     Account.update(:headers, headers)
 
@@ -78,6 +104,7 @@ defmodule ExRobinhood do
   defp handle_challenge({:ok, res}) do
     res.body
     |> Jason.decode!()
+    |> process_auth_response()
 
   end
 
@@ -121,6 +148,8 @@ defmodule ExRobinhood do
   defp handle_login_after_challenge({:ok, res}) do
     res.body
     |> Jason.decode!()
+    |> IO.inspect()
+    |> process_auth_response()
 
   end
 
@@ -135,8 +164,9 @@ defmodule ExRobinhood do
 
 
   @doc """
-
+  Logout
   """
+  @spec logout :: {:ok, string} | {:error, string}
 
   def logout do
     refresh_token = Account.get(:refresh_token)
@@ -157,8 +187,9 @@ defmodule ExRobinhood do
   end
 
   defp handle_logout({:ok, res}) do
-    res.body
-    |> Jason.decode!()
+    # res.body |> Jason.decode!()
+
+    {:ok, "Success"}
   end
 
   defp handle_logout({:error, message}) do
