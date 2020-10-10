@@ -2,27 +2,22 @@ defmodule ExRobinhood do
 
   alias Enum, as: E
   alias ExRobinhood.Endpoints
+  alias ExRobinhood.Account
 
   use HTTPoison.Base
 
   @client_id "c82SH0WZOsabOXGP2sxqcj34FxkvfnWRZBKlBjFS"
 
-  @headers %{
-    "Accept" => "*/*",
-    "Accept-Encoding" => "gzip, deflate",
-    "Accept-Language" => "en;q=1, fr;q=0.9, de;q=0.8, ja;q=0.7, nl;q=0.6, it;q=0.5",
-    "Content-Type" => "application/x-www-form-urlencoded; charset=utf-8",
-    "X-Robinhood-API-Version" => "1.0.0",
-    "Connection" => "keep-alive",
-    "User-Agent" => "Robinhood/823 (iPhone; iOS 7.1.2; Scale/2.00)"
-  }
+  @doc """
 
-  # ExRobinhood.login("example@example.com", "example_password", "")
+  """
 
-  def gen_device_token,
-      do: UUID.uuid4()
+  def login(username, password) do
+    device_token = UUID.uuid4()
+    Account.update(:device_token, device_token)
+    Account.update(:username, username)
+    Account.update(:password, password)
 
-  def login(username, password, device_token, mfa_code \\ "") do
     body = URI.encode_query(%{
       "password" => password,
       "username" => username,
@@ -32,46 +27,76 @@ defmodule ExRobinhood do
       "scope" => "internal",
       "challenge_type" => "sms",
       "device_token" => device_token,
-      "mfa_code" => mfa_code
+      "mfa_code" => ""
     })
-    |> IO.inspect()
 
-    resp = post(Endpoints.login, body, @headers)
-    #resp = nil
+    headers = Account.get(:headers)
+    url = Endpoints.login
 
-    case resp do
-      {:ok, res} -> res.body |> Jason.decode!() |> IO.inspect()
+    url
+    |> post(body, headers)
+    |> handle_login()
 
-      {:error, message} ->
-        IO.inspect(Jason.decode!(message))
-        {:error, message}
-
-      _ -> {:error, "resp could not be processed"}
-
-    end
   end
 
-  def respond_to_challenge(challenge_id, sms_code) when is_string(challenge_id) and is_string(sms_code) do
+  defp handle_login({:ok, res}) do
+    res.body
+    |> Jason.decode!()
+
+  end
+
+  defp handle_login({:error, message}) do
+    reason = Jason.decode!(message)
+    {:error, reason}
+  end
+
+  defp handle_login(_),
+       do: {:error, "resp could not be processed"}
+
+
+  @doc """
+
+  """
+
+  def challenge(sms_code) do
+    challenge_id = Account.get(:challenge_id)
     url = Endpoints.challenge(challenge_id)
     body = URI.encode_query(%{ "response" => sms_code })
-    headers = Map.merge(@headers,%{ "X-ROBINHOOD-CHALLENGE-RESPONSE-ID" => challenge_id})
 
-    resp = post(url, body, headers)
-    #resp = nil
+    headers = :headers
+              |> Account.get()
+              |> Map.merge(%{ "X-ROBINHOOD-CHALLENGE-RESPONSE-ID" => challenge_id})
 
-    case resp do
-      {:ok, res} -> res.body |> Jason.decode!() |> IO.inspect()
+    Account.update(:headers, headers)
 
-      {:error, message} ->
-        IO.inspect(Jason.decode!(message))
-        {:error, message}
+    url
+    |> post(body, headers)
+    |> handle_challenge()
 
-      _ -> {:error, "resp could not be processed"}
-
-    end
   end
 
-  def login_after_challenge(username, password, device_token, mfa_code \\ "", challenge_id) do
+  defp handle_challenge({:ok, res}) do
+    res.body
+    |> Jason.decode!()
+
+  end
+
+  defp handle_challenge({:error, message}) do
+    reason = Jason.decode!(message)
+    {:error, reason}
+  end
+
+  defp handle_challenge(_),
+       do: {:error, "resp could not be processed"}
+
+
+  @doc false
+
+  defp login_after_challenge do
+    password = Account.get(:password)
+    username = Account.get(:username)
+    device_token = Account.get(:device_token)
+
     body = URI.encode_query(%{
       "password" => password,
       "username" => username,
@@ -81,36 +106,74 @@ defmodule ExRobinhood do
       "scope" => "internal",
       "challenge_type" => "sms",
       "device_token" => device_token,
-      "mfa_code" => mfa_code
+      "mfa_code" => ""
     })
 
-    headers = Map.merge(@headers,%{ "X-ROBINHOOD-CHALLENGE-RESPONSE-ID" => challenge_id})
+    headers = Account.get(:headers)
+    url = Endpoints.login
 
-    resp = post(Endpoints.login, body, headers)
-    #resp = nil
+    url
+    |> post(body, headers)
+    |> handle_login_after_challenge()
 
-    case resp do
-      {:ok, res} -> res.body |> Jason.decode!() |> IO.inspect()
-
-      {:error, message} ->
-        IO.inspect(Jason.decode!(message))
-        {:error, message}
-
-      _ -> {:error, "resp could not be processed"}
-
-    end
   end
 
+  defp handle_login_after_challenge({:ok, res}) do
+    res.body
+    |> Jason.decode!()
 
+  end
+
+  defp handle_login_after_challenge({:error, message}) do
+    reason = Jason.decode!(message)
+    {:error, reason}
+  end
+
+  defp handle_login_after_challenge(_),
+       do: {:error, "resp could not be processed"}
+
+
+
+  @doc """
+
+  """
+
+  def logout do
+    refresh_token = Account.get(:refresh_token)
+
+    body = URI.encode_query(%{
+      "client_id": @client_id,
+      "token": refresh_token
+    })
+
+    headers = Account.get(:headers)
+
+    url = Endpoints.logout
+
+    url
+    |> post(body, headers)
+    |> handle_logout()
+
+  end
+
+  defp handle_logout({:ok, res}) do
+    res.body
+    |> Jason.decode!()
+  end
+
+  defp handle_logout({:error, message}) do
+    reason = Jason.decode!(message)
+    {:error, reason}
+  end
+
+  defp handle_logout(_),
+       do: {:error, "resp could not be processed"}
 
 
 
 
 
   """
-
-  def logout
-
   def user
 
   def investment_profile

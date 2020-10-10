@@ -1,25 +1,10 @@
 # ExRobinhood
 
+WIP
+
 ## Login
 
-```elixir
-    # Generate a device token, make sure you store this somewhere
-    device_token = ExRobinhood.gen_device_token()
-
-    # Enter credentials along with device token
-    ExRobinhood.login("example@example.com", "example_password", device_token)
-    # ! In the response you should get a challenge_id if using 2FA, make sure that you store this as well
-    challenge_id = resp.challenge_id
-
-    # For 2FA:
-    # Submit your SMS code (string)
-    ExRobinhood.respond_to_challenge(challenge_id, sms_code)
-    # resp.status should have "status" => "validated" if successfull
-
-    # Now re-submit your credentials + device token and challenge_id
-    ExRobinhood.login_after_challenge("example@example.com", "example_password", device_token, "", challenge_id)
-```
-
+...
 
 ### getting device token manually (Not needed normally)
 
