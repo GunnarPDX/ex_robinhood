@@ -32,9 +32,12 @@ defmodule ExRobinhood.Util do
     "fa", "fb", "fc", "fd", "fe", "ff"
   ]
 
+  def gen_uuid4,
+      do: UUID.uuid4()
+
   # produces token like: "4d36ca38-b507-4782-f8ae-465e66fcb6fd95"
   # NOT WORKING!!!
-  def gen_device_token do
+  def _gen_device_token do
 
     # hexa = E.take_random(@hexa, 17)
     rand = rand_nums()

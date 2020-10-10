@@ -11,6 +11,9 @@ defmodule ExRobinhood.Endpoints do
   def login,
       do: "#{@api_url}/oauth2/token/"
 
+  def challenge(challenge_id),
+      do: "#{@api_url}/challenge/#{challenge_id}/respond/"
+
   def logout,
       do: "#{@api_url}/oauth2/revoke_token/"
 

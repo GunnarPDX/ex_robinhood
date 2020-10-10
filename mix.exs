@@ -21,6 +21,7 @@ defmodule ExRobinhood.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      { :elixir_uuid, "~> 1.2" },
       {:jason, "~> 1.2"},
       {:httpoison, "~> 1.7"}
       # {:dep_from_hexpm, "~> 0.3.0"},

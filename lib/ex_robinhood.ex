@@ -19,6 +19,8 @@ defmodule ExRobinhood do
 
   # ExRobinhood.login("example@example.com", "example_password", "")
 
+  def gen_device_token,
+      do: UUID.uuid4()
 
   def login(username, password, device_token, mfa_code \\ "") do
     body = URI.encode_query(%{
@@ -28,6 +30,7 @@ defmodule ExRobinhood do
       "client_id" => @client_id,
       "expires_in" => "86400",
       "scope" => "internal",
+      "challenge_type" => "sms",
       "device_token" => device_token,
       "mfa_code" => mfa_code
     })
@@ -48,6 +51,55 @@ defmodule ExRobinhood do
     end
   end
 
+  def respond_to_challenge(challenge_id, sms_code) when is_string(challenge_id) and is_string(sms_code) do
+    url = Endpoints.challenge(challenge_id)
+    body = URI.encode_query(%{ "response" => sms_code })
+    headers = Map.merge(@headers,%{ "X-ROBINHOOD-CHALLENGE-RESPONSE-ID" => challenge_id})
+
+    resp = post(url, body, headers)
+    #resp = nil
+
+    case resp do
+      {:ok, res} -> res.body |> Jason.decode!() |> IO.inspect()
+
+      {:error, message} ->
+        IO.inspect(Jason.decode!(message))
+        {:error, message}
+
+      _ -> {:error, "resp could not be processed"}
+
+    end
+  end
+
+  def login_after_challenge(username, password, device_token, mfa_code \\ "", challenge_id) do
+    body = URI.encode_query(%{
+      "password" => password,
+      "username" => username,
+      "grant_type" => "password",
+      "client_id" => @client_id,
+      "expires_in" => "86400",
+      "scope" => "internal",
+      "challenge_type" => "sms",
+      "device_token" => device_token,
+      "mfa_code" => mfa_code
+    })
+
+    headers = Map.merge(@headers,%{ "X-ROBINHOOD-CHALLENGE-RESPONSE-ID" => challenge_id})
+
+    resp = post(Endpoints.login, body, headers)
+    #resp = nil
+
+    case resp do
+      {:ok, res} -> res.body |> Jason.decode!() |> IO.inspect()
+
+      {:error, message} ->
+        IO.inspect(Jason.decode!(message))
+        {:error, message}
+
+      _ -> {:error, "resp could not be processed"}
+
+    end
+  end
 
 
 
