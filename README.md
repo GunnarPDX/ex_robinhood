@@ -33,3 +33,4 @@
 - Click on Headers, then scroll down to the Request Payload section
 - Here, you'll see new JSON parameters for your login. What you'll need here is the device token.
 - Make sure you keep this saved
+- If using the device_token from this method then 2FA will probably be bypassed.
