@@ -38,7 +38,7 @@ defmodule ExRobinhood.Account do
   defp _update(changes),
       do: Agent.update(__MODULE__, fn content -> changes end)
 
-  defp reset,
+  def reset,
        do: Agent.update(__MODULE__, fn content -> @credentials end)
 
 end

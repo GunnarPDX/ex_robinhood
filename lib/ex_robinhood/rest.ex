@@ -24,6 +24,7 @@ defmodule ExRobinhood.Rest do
   @doc false
 
   defp handle_resp({:ok, resp}) do
+    IO.inspect(resp)
     body = Jason.decode!(resp.body)
     {:ok, body}
   end

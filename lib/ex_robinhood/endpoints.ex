@@ -65,8 +65,8 @@ defmodule ExRobinhood.Endpoints do
   def quotes(symbol),
       do: "#{@api_url}/quotes/#{symbol}/"
 
-  def historicals,
-      do: "#{@api_url}/quotes/historicals/"
+  def historicals(params),
+      do: "#{@api_url}/quotes/historicals/#{params}"
 
   def document_requests,
       do: "#{@api_url}/upload/document_requests/"
@@ -95,8 +95,8 @@ defmodule ExRobinhood.Endpoints do
   def options(chain_id, dates, option_type),
       do: "#{@api_url}/options/instruments/?chain_id=#{chain_id}&expiration_dates=#{dates}&state=active&tradability=tradable&type=#{option_type}"
 
-  def market_data,
-      do: "#{@api_url}/marketdata/"
+  def market_data(symbols),
+      do: "#{@api_url}/marketdata/#{symbols}/"
 
   def option_market_data(option_id),
       do: "#{@api_url}/marketdata/options/#{option_id}/"

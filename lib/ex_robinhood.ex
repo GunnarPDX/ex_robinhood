@@ -9,6 +9,7 @@ defmodule ExRobinhood do
 
   @client_id "c82SH0WZOsabOXGP2sxqcj34FxkvfnWRZBKlBjFS"
 
+
   @doc """
   Login
   """
@@ -69,6 +70,8 @@ defmodule ExRobinhood do
   defp process_auth_response(%{"challenge" => %{"id" => id, "status" => "issued"}} = body) do
     Account.update(:challenge_id, id)
 
+    IO.inspect(body)
+
     {:ok, "Challenge Required"}
   end
 
@@ -76,25 +79,36 @@ defmodule ExRobinhood do
     login_after_challenge
   end
 
+  defp process_auth_response(body) do
+    IO.inspect(body)
+    {:error, body}
+  end
+
 
   @doc """
   Challenge
   """
-  @spec challenge(string) :: {:ok, string} | {:error, string}
+  #@spec challenge(string) :: {:ok, string} | {:error, string}
 
   def challenge(sms_code) do
     challenge_id = Account.get(:challenge_id)
+    url = Endpoints.challenge(challenge_id)
     body = URI.encode_query(%{ "response" => sms_code })
     headers = :headers
               |> Account.get()
-              |> Map.merge(%{ "X-ROBINHOOD-CHALLENGE-RESPONSE-ID" => challenge_id}, fn _k, v1, v2 -> v2 end)
+              |> Map.merge(%{"X-ROBINHOOD-CHALLENGE-RESPONSE-ID" => challenge_id}) #, fn _k, v1, v2 -> v2 end)
+
 
     Account.update(:headers, headers)
 
-    challenge_id
-    |> Endpoints.challenge()
-    |> R.post(body)
+    post(url, body, headers)
+    |> IO.inspect()
     |> handle_challenge()
+
+    #challenge_id
+    #|> Endpoints.challenge()
+    #|> R.post(body)
+    #|> handle_challenge()
   end
 
   defp handle_challenge({:ok, res}) do
@@ -112,6 +126,7 @@ defmodule ExRobinhood do
   @doc false
 
   defp login_after_challenge do
+    IO.puts("Logging in after challenge success")
     password = Account.get(:password)
     username = Account.get(:username)
     device_token = Account.get(:device_token)
@@ -129,7 +144,7 @@ defmodule ExRobinhood do
     })
 
     Endpoints.login
-    |> post(body)
+    |> R.post(body)
     |> handle_login_after_challenge()
   end
 
@@ -190,6 +205,7 @@ defmodule ExRobinhood do
   """
 
   def investment_profile do
+    #TODO: returns binary ??? !!!
     Endpoints.investment_profile
     |> R.get()
   end
@@ -210,36 +226,109 @@ defmodule ExRobinhood do
   """
 
   def instrument(id) do
-    Endpoints.instruments <> "?symbol=" <> id
+    Endpoints.instruments <> "?symbol=" <> "#{id}"
     |> R.get()
   end
 
 
   @doc """
-  Quote Data
+  Quote
   """
 
-  def quote_data(symbol) do
+  def quote(symbol) do
     symbol
     |> Endpoints.quotes()
     |> R.get()
+    |> IO.inspect()
+  end
+
+
+  @doc """
+  Get Quote List
+  """
+
+  def quote_list(symbols) when is_list(symbols) do
+    "?symbols=" <> E.join(symbols, ",")
+    |> Endpoints.quotes()
+    |> R.get()
+  end
+
+  def quote_list(symbols) when is_binary(symbols) do
+    "?symbols=" <> symbols
+    |> Endpoints.quotes()
+    |> R.get()
+  end
+
+
+  @doc """
+  Get Quote List
+  """
+
+  def stock_marketdata(symbols) do
+    "quotes/?instruments=" <> E.join(symbols, ",")
+    |> Endpoints.market_data()
+    |> R.get()
+  end
+
+
+  @doc """
+  Historical Quotes
+
+  Note: valid interval/span configs
+      interval = 5minute | 10minute + span = day, week
+      interval = day + span = year
+      interval = week
+
+  Args:
+      stock (str): stock ticker
+      interval (str): resolution of data
+      span (str): length of data
+      bounds (atom = :extended | :regular): extended or regular trading hours [ default is :regular ]
+  """
+  @spec historical_quotes(string, string, string, atom) :: {:ok, map} | {:error, map}
+
+  def historical_quotes(stock, interval, span, bounds)
+
+  def historical_quotes(stock, interval, span),
+      do: historical_quotes(stock, interval, span, :regular)
+
+  def historical_quotes(stock, interval, span, :regular) do
+    "/?symbols=" <> String.upcase(stock) <> "&interval=" <> "#{interval}" <> "&span=" <> "#{span}" <> "&bounds=regular"
+    |> Endpoints.historicals()
+    |> R.get
+  end
+
+  def historical_quotes(stock, interval, span, :extended) do
+    "/?symbols=" <> String.upcase(stock) <> "&interval=" <> "#{interval}" <> "&span=" <> "#{span}" <> "&bounds=extended"
+    |> Endpoints.historicals()
+    |> R.get
+  end
+
+
+  @doc """
+  Account
+  """
+
+  def account do
+    Endpoints.accounts
+    |> R.get()
+  end
+
+
+  @doc """
+  Popularity
+  """
+
+  def popularity do
+    nil
   end
 
 
 
   """
 
-  def quote_data
 
-  def get_quote_list
-
-  def get_historical_quotes
-
-  def get_news
-
-  def get_account
-
-  def get_popularity
+  def popularity
 
   def get_tickers_by_tag
 
