@@ -39,7 +39,7 @@ defmodule ExRobinhood.Endpoints do
       do: "#{@api_url}/documents/"
 
   def instruments(instrument_id \\ "", option \\ ""),
-      do: "#{@api_url}/instruments/#{instrument_id}/#{option}"
+      do: "#{@api_url}/instruments/#{if instrument_id == "", do: "", else: instrument_id <> "/" }#{if option == "", do: "", else: option <> "/" }"
 
   def margin_upgrades,
       do: "#{@api_url}/margin/upgrades/"
@@ -62,8 +62,8 @@ defmodule ExRobinhood.Endpoints do
   def positions,
       do: "#{@api_url}/positions/"
 
-  def quotes,
-      do: "#{@api_url}/quotes/"
+  def quotes(symbol),
+      do: "#{@api_url}/quotes/#{symbol}/"
 
   def historicals,
       do: "#{@api_url}/quotes/historicals/"

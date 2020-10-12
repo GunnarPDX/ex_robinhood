@@ -3,6 +3,7 @@ defmodule ExRobinhood do
   alias Enum, as: E
   alias ExRobinhood.Endpoints
   alias ExRobinhood.Account
+  alias ExRobinhood.Rest, as: R
 
   use HTTPoison.Base
 
@@ -31,30 +32,21 @@ defmodule ExRobinhood do
       "mfa_code" => ""
     })
 
-    headers = Account.get(:headers)
-    url = Endpoints.login
-
-    url
-    |> post(body, headers)
+    Endpoints.login
+    |> R.post(body)
     |> handle_login()
-    |> IO.inspect()
-
   end
 
   defp handle_login({:ok, res}) do
     res.body
     |> Jason.decode!()
     |> process_auth_response()
-
   end
 
   defp handle_login({:error, message}) do
     reason = Jason.decode!(message)
     {:error, reason}
   end
-
-  defp handle_login(_),
-       do: {:error, "resp could not be processed"}
 
 
   @doc false
@@ -64,6 +56,12 @@ defmodule ExRobinhood do
     Account.update(:refresh_token, refresh_token)
     Account.update(:password, "")
     Account.update(:username, "")
+
+    headers = :headers
+              |> Account.get()
+              |> Map.merge(%{ "Authorization" => "Bearer " <> access_token}, fn _k, v1, v2 -> v2 end)
+
+    Account.update(:headers, headers)
 
     {:ok, "Success"}
   end
@@ -86,35 +84,29 @@ defmodule ExRobinhood do
 
   def challenge(sms_code) do
     challenge_id = Account.get(:challenge_id)
-    url = Endpoints.challenge(challenge_id)
     body = URI.encode_query(%{ "response" => sms_code })
-
     headers = :headers
               |> Account.get()
               |> Map.merge(%{ "X-ROBINHOOD-CHALLENGE-RESPONSE-ID" => challenge_id}, fn _k, v1, v2 -> v2 end)
 
     Account.update(:headers, headers)
 
-    url
-    |> post(body, headers)
+    challenge_id
+    |> Endpoints.challenge()
+    |> R.post(body)
     |> handle_challenge()
-
   end
 
   defp handle_challenge({:ok, res}) do
     res.body
     |> Jason.decode!()
     |> process_auth_response()
-
   end
 
   defp handle_challenge({:error, message}) do
     reason = Jason.decode!(message)
     {:error, reason}
   end
-
-  defp handle_challenge(_),
-       do: {:error, "resp could not be processed"}
 
 
   @doc false
@@ -136,30 +128,21 @@ defmodule ExRobinhood do
       "mfa_code" => ""
     })
 
-    headers = Account.get(:headers)
-    url = Endpoints.login
-
-    url
-    |> post(body, headers)
+    Endpoints.login
+    |> post(body)
     |> handle_login_after_challenge()
-
   end
 
   defp handle_login_after_challenge({:ok, res}) do
     res.body
     |> Jason.decode!()
-    |> IO.inspect()
     |> process_auth_response()
-
   end
 
   defp handle_login_after_challenge({:error, message}) do
     reason = Jason.decode!(message)
     {:error, reason}
   end
-
-  defp handle_login_after_challenge(_),
-       do: {:error, "resp could not be processed"}
 
 
 
@@ -176,19 +159,13 @@ defmodule ExRobinhood do
       "token": refresh_token
     })
 
-    headers = Account.get(:headers)
-
-    url = Endpoints.logout
-
-    url
-    |> post(body, headers)
+    Endpoints.logout
+    |> R.post(body)
     |> handle_logout()
-
   end
 
   defp handle_logout({:ok, res}) do
-    # res.body |> Jason.decode!()
-
+    Account.reset()
     {:ok, "Success"}
   end
 
@@ -197,21 +174,60 @@ defmodule ExRobinhood do
     {:error, reason}
   end
 
-  defp handle_logout(_),
-       do: {:error, "resp could not be processed"}
 
 
+  @doc """
+  User
+  """
+  def user do
+    Endpoints.user
+    |> R.get()
+  end
+
+
+  @doc """
+  Investment Profile
+  """
+
+  def investment_profile do
+    Endpoints.investment_profile
+    |> R.get()
+  end
+
+
+  @doc """
+  Query Instruments
+  """
+
+  def query_instruments(stock) do
+    Endpoints.instruments <> "?query=" <> String.upcase(stock)
+    |> R.get()
+  end
+
+
+  @doc """
+  Instruments
+  """
+
+  def instrument(id) do
+    Endpoints.instruments <> "?symbol=" <> id
+    |> R.get()
+  end
+
+
+  @doc """
+  Quote Data
+  """
+
+  def quote_data(symbol) do
+    symbol
+    |> Endpoints.quotes()
+    |> R.get()
+  end
 
 
 
   """
-  def user
-
-  def investment_profile
-
-  def instruments
-
-  def instrument
 
   def quote_data
 

@@ -1,4 +1,7 @@
 defmodule ExRobinhood.Account do
+  @moduledoc """
+  Account Agent
+  """
   use Agent
 
   @credentials %{
@@ -34,5 +37,8 @@ defmodule ExRobinhood.Account do
 
   defp _update(changes),
       do: Agent.update(__MODULE__, fn content -> changes end)
+
+  defp reset,
+       do: Agent.update(__MODULE__, fn content -> @credentials end)
 
 end
