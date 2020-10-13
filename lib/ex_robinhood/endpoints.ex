@@ -50,7 +50,7 @@ defmodule ExRobinhood.Endpoints do
   def notifications,
       do: "#{@api_url}/notifications/"
 
-  def orders(order_id),
+  def orders(order_id \\ ""),
       do: "#{@api_url}/orders/#{order_id}"
 
   def password_reset,
@@ -83,7 +83,7 @@ defmodule ExRobinhood.Endpoints do
   def fundamentals(stock),
       do: "#{@api_url}/fundamentals/#{stock}/"
 
-  def tag(tag),
+  def tags(tag),
       do: "#{@api_url}/midlands/tags/tag/#{tag}/"
 
   def options_base,

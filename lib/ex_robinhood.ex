@@ -83,7 +83,6 @@ defmodule ExRobinhood do
 
   def challenge(sms_code) do
     challenge_id = Account.get(:challenge_id)
-    # url = Endpoints.challenge(challenge_id)
     body = URI.encode_query(%{ "response" => "#{sms_code}" })
     headers = :headers
               |> Account.get()
@@ -97,20 +96,6 @@ defmodule ExRobinhood do
     |> R.post(body)
     |> process_auth_response()
   end
-
-
-"""
-  defp handle_challenge({:ok, res}) do
-    body = res.body |> Jason.decode!()
-
-    process_auth_response({:ok, body})
-  end
-
-  defp handle_challenge({:error, message}) do
-    reason = Jason.decode!(message)
-    {:error, reason}
-  end
-"""
 
 
 
@@ -137,7 +122,6 @@ defmodule ExRobinhood do
     Endpoints.login
     |> R.post(body)
     |> process_auth_response()
-    #|> handle_login_after_challenge()
   end
 
 
@@ -167,6 +151,21 @@ defmodule ExRobinhood do
 
   @doc """
   User
+
+  {:ok,
+  %{
+   "created_at" => "2009-01-11T16:21:03.923311-04:00",
+   "email" => "email@example.com",
+   "email_verified" => true,
+   "first_name" => "First",
+   "id" => "1c34187b-eeb0-1a5d-9c6c-bb239a3463eb",
+   "id_info" => "https://api.robinhood.com/user/id/",
+   "last_name" => "Last",
+   "origin" => %{"locality" => "US"},
+   "profile_name" => "FirstL12345",
+   "url" => "https://api.robinhood.com/user/",
+   "username" => "first.last"
+  }}
   """
   def user do
     Endpoints.user
@@ -300,42 +299,146 @@ defmodule ExRobinhood do
   Popularity
   """
 
-  def popularity do
-    nil
+  def popularity(id) do
+    id
+    |> Endpoints.instruments("popularity")
+    |> R.get()
   end
 
 
 
+  @doc """
+  Tickers by Tag
+
+  Args: tag - Tags may include but are not limited to:
+                * top-movers
+                * etf
+                * 100-most-popular
+                * mutual-fund
+                * finance
+                * cap-weighted
+                * investment-trust-or-fund
+  """
+
+  def tickers_by_tag(tag) do
+    tag
+    |> Endpoints.tags()
+    |> R.get()
+  end
+
+
+
+  @doc false
+  """
+  # Options Chain
+  defp options_chain(id) do
+    Endpoints.chain(id)
+    |> R.get()
+  end
+
+  # Options
+  def options(stock, expiration_dates, option_type) do
+    Endpoints.options(chain_id, expiration_dates, option_type)
+    |> R.get()
+  end
+
+  ...
+
+  def get_option_market_data
+  def options_owned
+  def get_option_marketdata
+  def get_option_chainid
+  def get_option_quote
   """
 
 
-  def popularity
+  @doc """
+  Fundamentals
+  """
 
-  def get_tickers_by_tag
+  def fundamentals(symbol) do
+    symbol
+    |> Endpoints.fundamentals()
+    |> R.get()
+  end
 
-  def get_options
 
-  def get_option_market_data
 
-  def options_owned
+  @doc """
+  Portfolios
+  """
 
-  def get_option_marketdata
+  def portfolios do
+    Endpoints.portfolios
+    |> R.get()
+  end
 
-  def get_option_chainid
 
-  def get_option_quote
 
-  def get_fundamentals
+  @doc """
+  Order
+  """
 
-  def portfolios
+  def order(order_id) do
+    order_id
+    |> Endpoints.orders
+    |> R.get()
+  end
 
-  def order_history
 
-  def dividends
 
-  def positions
+  @doc """
+  Order History
+  """
 
-  def securities_owned
+  def order_history do
+    Endpoints.orders
+    |> R.get()
+  end
+
+
+
+  @doc """
+  Dividends
+  """
+
+  def dividends do
+    Endpoints.dividends()
+    |> R.get()
+  end
+
+
+
+  @doc """
+  Positions
+  """
+
+  def Positions do
+    Endpoints.positions()
+    |> R.get()
+  end
+
+
+
+  @doc """
+  Securities Owned
+  """
+
+  def securities_owned do
+    Endpoints.positions() <> "?nonzero=true"
+    |> R.get()
+  end
+
+
+
+
+
+
+
+
+
+
+  """
 
   def place_market_buy_order
 
