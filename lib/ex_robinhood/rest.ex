@@ -17,21 +17,44 @@ defmodule ExRobinhood.Rest do
 
   def post(url, body) do
     headers = Account.get(:headers)
-    HTTPoison.post(url, body, headers)
+
+    url
+    |> HTTPoison.post(body, headers)
+    |> handle_resp()
   end
 
 
   @doc false
 
   defp handle_resp({:ok, resp}) do
-    IO.inspect(resp)
-    body = Jason.decode!(resp.body)
+    body = resp.headers
+           |> decode_response_content(resp.body)
+           |> Jason.decode!()
+
     {:ok, body}
   end
 
   defp handle_resp({:error, message}) do
     reason = Jason.decode!(message)
     {:error, reason}
+  end
+
+
+  @doc false
+
+  def decode_response_content(headers, body) do
+    gzipped = Enum.any?(headers, fn (kv) ->
+      case kv do
+        {"Content-Encoding", "gzip"} -> true
+        {"Content-Encoding", "x-gzip"} -> true
+        _ -> false
+      end
+    end)
+
+    html_body = if gzipped, do: :zlib.gunzip(body), else: body
+
+
+    html_body
   end
 
 end

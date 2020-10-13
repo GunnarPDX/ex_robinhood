@@ -35,24 +35,14 @@ defmodule ExRobinhood do
 
     Endpoints.login
     |> R.post(body)
-    |> handle_login()
-  end
-
-  defp handle_login({:ok, res}) do
-    res.body
-    |> Jason.decode!()
     |> process_auth_response()
   end
 
-  defp handle_login({:error, message}) do
-    reason = Jason.decode!(message)
-    {:error, reason}
-  end
 
 
   @doc false
 
-  defp process_auth_response(%{"access_token" => access_token, "refresh_token" => refresh_token} = body) do
+  defp process_auth_response({:ok, %{"access_token" => access_token, "refresh_token" => refresh_token} = body}) do
     Account.update(:access_token, access_token)
     Account.update(:refresh_token, refresh_token)
     Account.update(:password, "")
@@ -67,7 +57,7 @@ defmodule ExRobinhood do
     {:ok, "Success"}
   end
 
-  defp process_auth_response(%{"challenge" => %{"id" => id, "status" => "issued"}} = body) do
+  defp process_auth_response({:ok, %{"challenge" => %{"id" => id, "status" => "issued"}} = body}) do
     Account.update(:challenge_id, id)
 
     IO.inspect(body)
@@ -75,7 +65,7 @@ defmodule ExRobinhood do
     {:ok, "Challenge Required"}
   end
 
-  defp process_auth_response(%{"status" => "validated"} = body) do
+  defp process_auth_response({:ok, %{"status" => "validated"} = body}) do
     login_after_challenge
   end
 
@@ -85,6 +75,7 @@ defmodule ExRobinhood do
   end
 
 
+
   @doc """
   Challenge
   """
@@ -92,8 +83,8 @@ defmodule ExRobinhood do
 
   def challenge(sms_code) do
     challenge_id = Account.get(:challenge_id)
-    url = Endpoints.challenge(challenge_id)
-    body = URI.encode_query(%{ "response" => sms_code })
+    # url = Endpoints.challenge(challenge_id)
+    body = URI.encode_query(%{ "response" => "#{sms_code}" })
     headers = :headers
               |> Account.get()
               |> Map.merge(%{"X-ROBINHOOD-CHALLENGE-RESPONSE-ID" => challenge_id}) #, fn _k, v1, v2 -> v2 end)
@@ -101,26 +92,26 @@ defmodule ExRobinhood do
 
     Account.update(:headers, headers)
 
-    post(url, body, headers)
-    |> IO.inspect()
-    |> handle_challenge()
-
-    #challenge_id
-    #|> Endpoints.challenge()
-    #|> R.post(body)
-    #|> handle_challenge()
+    challenge_id
+    |> Endpoints.challenge()
+    |> R.post(body)
+    |> process_auth_response()
   end
 
+
+"""
   defp handle_challenge({:ok, res}) do
-    res.body
-    |> Jason.decode!()
-    |> process_auth_response()
+    body = res.body |> Jason.decode!()
+
+    process_auth_response({:ok, body})
   end
 
   defp handle_challenge({:error, message}) do
     reason = Jason.decode!(message)
     {:error, reason}
   end
+"""
+
 
 
   @doc false
@@ -145,18 +136,8 @@ defmodule ExRobinhood do
 
     Endpoints.login
     |> R.post(body)
-    |> handle_login_after_challenge()
-  end
-
-  defp handle_login_after_challenge({:ok, res}) do
-    res.body
-    |> Jason.decode!()
     |> process_auth_response()
-  end
-
-  defp handle_login_after_challenge({:error, message}) do
-    reason = Jason.decode!(message)
-    {:error, reason}
+    #|> handle_login_after_challenge()
   end
 
 
@@ -176,17 +157,10 @@ defmodule ExRobinhood do
 
     Endpoints.logout
     |> R.post(body)
-    |> handle_logout()
-  end
+    #|> handle_logout()
 
-  defp handle_logout({:ok, res}) do
     Account.reset()
     {:ok, "Success"}
-  end
-
-  defp handle_logout({:error, message}) do
-    reason = Jason.decode!(message)
-    {:error, reason}
   end
 
 
@@ -200,6 +174,7 @@ defmodule ExRobinhood do
   end
 
 
+
   @doc """
   Investment Profile
   """
@@ -211,14 +186,17 @@ defmodule ExRobinhood do
   end
 
 
+
   @doc """
   Query Instruments
   """
 
   def query_instruments(stock) do
-    Endpoints.instruments <> "?query=" <> String.upcase(stock)
+    #TODO: returns binary ??? !!!
+    Endpoints.instruments <> "?query=" <> stock
     |> R.get()
   end
+
 
 
   @doc """
@@ -231,39 +209,43 @@ defmodule ExRobinhood do
   end
 
 
+
   @doc """
   Quote
   """
 
-  def quote(symbol) do
-    symbol
+  def quote(id) do
+    id
     |> Endpoints.quotes()
     |> R.get()
     |> IO.inspect()
   end
 
 
-  @doc """
-  Get Quote List
-  """
-
-  def quote_list(symbols) when is_list(symbols) do
-    "?symbols=" <> E.join(symbols, ",")
-    |> Endpoints.quotes()
-    |> R.get()
-  end
-
-  def quote_list(symbols) when is_binary(symbols) do
-    "?symbols=" <> symbols
-    |> Endpoints.quotes()
-    |> R.get()
-  end
-
 
   @doc """
   Get Quote List
   """
 
+  def quote_list(ids) when is_list(ids) do
+    "?symbols=" <> E.join(ids, ",")
+    |> Endpoints.quotes()
+    |> R.get()
+  end
+
+  def quote_list(ids) when is_binary(ids) do
+    "?symbols=" <> ids
+    |> Endpoints.quotes()
+    |> R.get()
+  end
+
+
+
+  @doc """
+  Get Quote List
+  """
+
+  # TODO: symbols or ids?
   def stock_marketdata(symbols) do
     "quotes/?instruments=" <> E.join(symbols, ",")
     |> Endpoints.market_data()
@@ -271,38 +253,36 @@ defmodule ExRobinhood do
   end
 
 
+
   @doc """
   Historical Quotes
 
-  Note: valid interval/span configs
-      interval = 5minute | 10minute + span = day, week
-      interval = day + span = year
-      interval = week
-
   Args:
-      stock (str): stock ticker
-      interval (str): resolution of data
-      span (str): length of data
+      stock (str): stock ticker/s
+      interval (str): resolution of data -> Values are '5minute', '10minute', 'hour', 'day', 'week'. Default is 'hour'.
+      span (str): length of data -> 'day', 'week', 'month', '3month', 'year', or '5year'. Default is 'week'.
       bounds (atom = :extended | :regular): extended or regular trading hours [ default is :regular ]
   """
   @spec historical_quotes(string, string, string, atom) :: {:ok, map} | {:error, map}
+  # E.historical_quotes("nvda", "hour", "week", :regular)
 
-  def historical_quotes(stock, interval, span, bounds)
+  def historical_quotes(symbol, interval, span, bounds)
 
-  def historical_quotes(stock, interval, span),
-      do: historical_quotes(stock, interval, span, :regular)
+  def historical_quotes(symbol, interval, span),
+      do: historical_quotes(symbol, interval, span, :regular)
 
-  def historical_quotes(stock, interval, span, :regular) do
-    "/?symbols=" <> String.upcase(stock) <> "&interval=" <> "#{interval}" <> "&span=" <> "#{span}" <> "&bounds=regular"
+  def historical_quotes(symbol, interval, span, :regular) do
+    "/?symbols=" <> String.upcase(symbol) <> "&interval=" <> "#{interval}" <> "&span=" <> "#{span}" <> "&bounds=regular"
     |> Endpoints.historicals()
     |> R.get
   end
 
-  def historical_quotes(stock, interval, span, :extended) do
-    "/?symbols=" <> String.upcase(stock) <> "&interval=" <> "#{interval}" <> "&span=" <> "#{span}" <> "&bounds=extended"
+  def historical_quotes(symbol, interval, span, :extended) do
+    "/?symbols=" <> String.upcase(symbol) <> "&interval=" <> "#{interval}" <> "&span=" <> "#{span}" <> "&bounds=extended"
     |> Endpoints.historicals()
     |> R.get
   end
+
 
 
   @doc """
@@ -313,6 +293,7 @@ defmodule ExRobinhood do
     Endpoints.accounts
     |> R.get()
   end
+
 
 
   @doc """
