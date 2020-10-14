@@ -29,8 +29,13 @@ defmodule ExRobinhood do
   ##------------------------------------------------------------------------
   ## AUTH
   ##------------------------------------------------------------------------
+
   @doc """
-  Login
+  ## Login
+  ### Used to sign into your Robinhood account
+  Args:
+    username: email@example.com
+    password: qwerty1234
   """
   @spec login(String.t(), String.t()) :: {:ok, String.t()} | {:error, String.t()}
 
@@ -71,7 +76,7 @@ defmodule ExRobinhood do
 
     Account.update(:headers, headers)
 
-    {:ok, "Success"}
+    set_account_url()
   end
 
   defp process_auth_response({:ok, %{"challenge" => %{"id" => id, "status" => "issued"}} = body}) do
@@ -94,9 +99,12 @@ defmodule ExRobinhood do
 
 
   @doc """
-  Challenge
+  ## Challenge
+  ### Used to submit 2FA verification code
+  Args:
+    sms_code: 123123    <~~(string or number)
   """
-  #@spec challenge(string) :: {:ok, string} | {:error, string}
+  @spec challenge(String.t()) :: {:ok, String.t()} | {:error, String.t()}
 
   def challenge(sms_code) do
     challenge_id = Account.get(:challenge_id)
@@ -119,7 +127,6 @@ defmodule ExRobinhood do
   @doc false
 
   defp login_after_challenge do
-    IO.puts("Logging in after challenge success")
     password = Account.get(:password)
     username = Account.get(:username)
     device_token = Account.get(:device_token)
@@ -144,7 +151,8 @@ defmodule ExRobinhood do
 
 
   @doc """
-  Logout
+  ## Logout
+  ### Used to end your Robinhood session
   """
   @spec logout :: {:ok, String.t()} | {:error, String.t()}
 
@@ -170,22 +178,26 @@ defmodule ExRobinhood do
   ## INFO
   ##------------------------------------------------------------------------
   @doc """
-  User
+  ## User
+  ### Gets user info
 
-  {:ok,
-  %{
-   "created_at" => "2009-01-11T16:21:03.923311-04:00",
-   "email" => "email@example.com",
-   "email_verified" => true,
-   "first_name" => "First",
-   "id" => "1c34187b-eeb0-1a5d-9c6c-bb239a3463eb",
-   "id_info" => "https://api.robinhood.com/user/id/",
-   "last_name" => "Last",
-   "origin" => %{"locality" => "US"},
-   "profile_name" => "FirstL12345",
-   "url" => "https://api.robinhood.com/user/",
-   "username" => "first.last"
-  }}
+  Returns:
+  {
+    :ok,
+    %{
+       "created_at" => "2000-01-11T16:21:00.000000-04:00",
+       "email" => "email@example.com",
+       "email_verified" => true,
+       "first_name" => "First",
+       "id" => "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+       "id_info" => "https://api.robinhood.com/user/id/",
+       "last_name" => "Last",
+       "origin" => %{"locality" => "US"},
+       "profile_name" => "FirstL12345",
+       "url" => "https://api.robinhood.com/user/",
+       "username" => "first.last"
+    }
+  }
   """
   def user do
     Endpoints.user
@@ -195,11 +207,11 @@ defmodule ExRobinhood do
 
 
   @doc """
-  Investment Profile
+  ## Investment Profile
+  ### Gets users investment-profile
   """
 
   def investment_profile do
-    #TODO: returns binary ??? !!!
     Endpoints.investment_profile
     |> R.get()
   end
@@ -207,11 +219,11 @@ defmodule ExRobinhood do
 
 
   @doc """
-  Query Instruments
+  ## Query Instruments
+  ### Gets instrument by `symbol`, (can be used to get stocks `id`)
   """
 
   def query_instruments(stock) do
-    #TODO: returns binary ??? !!!
     Endpoints.instruments <> "?query=" <> stock
     |> R.get()
   end
@@ -219,7 +231,8 @@ defmodule ExRobinhood do
 
 
   @doc """
-  Instruments
+  ## Instruments
+  ### Gets instrument by `id`
   """
 
   def instrument(id) do
@@ -230,7 +243,8 @@ defmodule ExRobinhood do
 
 
   @doc """
-  Quote
+  ## Quote
+  ### Gets quote for product by `id`
   """
 
   def quote(id) do
@@ -243,7 +257,8 @@ defmodule ExRobinhood do
 
 
   @doc """
-  Get Quote List
+  ## Quote List
+  ### Gets quote list for list or comma separated string of products by `id`
   """
 
   def quote_list(ids) when is_list(ids) do
@@ -261,12 +276,19 @@ defmodule ExRobinhood do
 
 
   @doc """
-  Get Quote List
+  ## Stock Marketdata
+  ### Gets marketdata for stocks
   """
 
   # TODO: symbols or ids?
-  def stock_marketdata(symbols) do
+  def stock_marketdata(symbols) when is_list(symbols) do
     "quotes/?instruments=" <> E.join(symbols, ",")
+    |> Endpoints.market_data()
+    |> R.get()
+  end
+
+  def stock_marketdata(symbols) when is_binary(symbols) do
+    "quotes/?instruments=" <> symbols
     |> Endpoints.market_data()
     |> R.get()
   end
@@ -274,13 +296,13 @@ defmodule ExRobinhood do
 
 
   @doc """
-  Historical Quotes
-
+  ## Historical Quotes
+  ### Gets historical quotes for
   Args:
-      stock (str): stock ticker/s
-      interval (str): resolution of data -> Values are '5minute', '10minute', 'hour', 'day', 'week'. Default is 'hour'.
-      span (str): length of data -> 'day', 'week', 'month', '3month', 'year', or '5year'. Default is 'week'.
-      bounds (atom = :extended | :regular): extended or regular trading hours [ default is :regular ]
+    stock (str): stock ticker/s
+    interval (str): resolution of data ~~> Values are `5minute`, `10minute`, `hour`, `day`, `week`.
+    span (str): length of data ~~> `day`, `week`, `month`, `3month`, `year`, or `5year`.
+    bounds (atom = `:extended` | `:regular`): extended or regular trading hours [ default is `:regular` ]
   """
   @spec historical_quotes(String.t(), String.t(), String.t(), atom) :: {:ok, map} | {:error, map}
   # E.historical_quotes("nvda", "hour", "week", :regular)
@@ -303,7 +325,8 @@ defmodule ExRobinhood do
 
 
   @doc """
-  Account
+  ## Account
+  ### Gets account data
   """
 
   def account do
@@ -314,7 +337,26 @@ defmodule ExRobinhood do
 
 
   @doc """
-  Popularity
+  ## Set Account Data
+  ### (shouldn't ever be needed)
+  ### You can run this if it fails to run automatically during login, its needed for placing orders.
+  """
+
+  def set_account_url do
+    case account() do
+      {:ok, %{"results" => [%{"url" => url}]}} ->
+        Account.update(:account_url, url)
+        {:ok, "success"}
+
+      _ -> {:error, "Account url could not be retrieved, please try calling set_account_url()"}
+    end
+  end
+
+
+
+  @doc """
+  ## Popularity
+  ### Gets a stocks popularity on robinhood by `id`
   """
 
   def popularity(id) do
@@ -326,15 +368,16 @@ defmodule ExRobinhood do
 
 
   @doc """
-  Tickers by Tag
+  ## Tickers by Tag
+  ### Gets lists of tickers for selected category
   Args: tag - Tags may include but are not limited to:
-      * top-movers
-      * etf
-      * 100-most-popular
-      * mutual-fund
-      * finance
-      * cap-weighted
-      * investment-trust-or-fund
+    * `top-movers`
+    * `etf`
+    * `100-most-popular`
+    * `mutual-fund`
+    * `finance`
+    * `cap-weighted`
+    * `investment-trust-or-fund`
   """
 
   def tickers_by_tag(tag) do
@@ -346,7 +389,8 @@ defmodule ExRobinhood do
 
 
   @doc """
-  Fundamentals
+  ## Fundamentals
+  ### Gets a stocks fundamentals info
   """
 
   def fundamentals(symbol) do
@@ -358,7 +402,8 @@ defmodule ExRobinhood do
 
 
   @doc """
-  Portfolios
+  ## Portfolios
+  ### Gets portfolios data
   """
 
   def portfolios do
@@ -369,7 +414,8 @@ defmodule ExRobinhood do
 
 
   @doc """
-  Order
+  ## Order
+  ### Gets order by `id`
   """
 
   def order(order_id) do
@@ -381,7 +427,8 @@ defmodule ExRobinhood do
 
 
   @doc """
-  Order History
+  ## Order History
+  ### Gets your order history
   """
 
   def order_history do
@@ -392,7 +439,8 @@ defmodule ExRobinhood do
 
 
   @doc """
-  Dividends
+  ## Dividends
+  ### Gets your dividends
   """
 
   def dividends do
@@ -403,7 +451,8 @@ defmodule ExRobinhood do
 
 
   @doc """
-  Positions
+  ## Positions
+  ### Gets your positions
   """
 
   def positions do
@@ -414,7 +463,8 @@ defmodule ExRobinhood do
 
 
   @doc """
-  Securities Owned
+  ## Securities Owned
+  ### Gets your currently owned securities
   """
 
   def securities_owned do
@@ -425,20 +475,23 @@ defmodule ExRobinhood do
 
 
   ##------------------------------------------------------------------------
-  ## ORDERS
+  ## ORDERS # TODO: fractional shares
   ##------------------------------------------------------------------------
+
   @doc """
-  Place Order
+  ## Place Order
+  ### (this shouldn't be used normally) ~~> see: place_market_buy_order, place_limit_sell_order, etc...
+  ### Used to submit orders
   Args:
-      instrument_URL (str): the RH URL for the instrument
-      symbol (str): the ticker symbol for the instrument
-      order_type (str): 'market' or 'limit'
-      time_in_force (:enum:`TIME_IN_FORCE`): 'gfd' or 'gtc' (day or until cancelled)
-      trigger (str): 'immediate' or 'stop' enum
-      price (float): The share price you'll accept
-      stop_price (float): The price at which the order becomes a market or limit order
-      quantity (int): The number of shares to buy/sell
-      side (str): BUY or sell
+    instrument_URL: the RH URL for the instrument (str)
+    symbol: the ticker symbol for the instrument (str)
+    order_type: 'market' or 'limit'
+    time_in_force: 'gfd' or 'gtc' (day or until cancelled) (str)
+    trigger: 'immediate' or 'stop' (str)
+    price: The share price you'll accept (float)
+    stop_price: The price at which the order becomes a market or limit order (float)
+    quantity: The number of shares to buy/sell (int)
+    side: 'buy' or 'sell' (str)
   """
 
   def place_order(
@@ -480,7 +533,8 @@ defmodule ExRobinhood do
 
 
   @doc """
-  Place Market Buy Order
+  ## Place Market Buy Order
+  ### used to place market buy order
   """
 
   def place_market_buy_order(instrument_url, symbol, quantity, time_in_force \\ @good_til_cancelled),
@@ -489,7 +543,8 @@ defmodule ExRobinhood do
 
 
   @doc """
-  Place Limit Buy Order
+  ## Place Limit Buy Order
+  ### used to place limit buy order
   """
 
   def place_limit_buy_order(instrument_url, symbol, price, quantity, time_in_force \\ @good_til_cancelled),
@@ -498,7 +553,8 @@ defmodule ExRobinhood do
 
 
   @doc """
-  Place Stop Loss Buy Order
+  ## Place Stop Loss Buy Order
+  ### used to stop loss buy order
   """
 
   def place_stop_loss_buy_order(instrument_url, symbol, stop_price, quantity, time_in_force \\ @good_til_cancelled),
@@ -507,7 +563,8 @@ defmodule ExRobinhood do
 
 
   @doc """
-  Place Stop Limit Buy Order
+  ## Place Stop Limit Buy Order
+  ### used to place limit buy order
   """
 
   def place_stop_limit_buy_order(instrument_url, symbol, price, stop_price, quantity, time_in_force \\ @good_til_cancelled),
@@ -516,7 +573,8 @@ defmodule ExRobinhood do
 
 
   @doc """
-  Place Market Sell Order
+  ## Place Market Sell Order
+  ### used to place market sell order
   """
 
   def place_market_sell_order(instrument_url, symbol, quantity, time_in_force \\ @good_til_cancelled),
@@ -525,7 +583,8 @@ defmodule ExRobinhood do
 
 
   @doc """
-  Place Limit Sell Order
+  ## Place Limit Sell Order
+  ### used to place limit sell order
   """
 
   def place_limit_sell_order(instrument_url, symbol, price, quantity, time_in_force \\ @good_til_cancelled),
@@ -534,7 +593,8 @@ defmodule ExRobinhood do
 
 
   @doc """
-  Place Stop Loss Sell Order
+  ## Place Stop Loss Sell Order
+  ### used to place stop loss sell order
   """
 
   def place_stop_loss_sell_order(instrument_url, symbol, stop_price, quantity, time_in_force \\ @good_til_cancelled),
@@ -543,7 +603,8 @@ defmodule ExRobinhood do
 
 
   @doc """
-  Place Stop Limit Sell Order
+  ## Place Stop Limit Sell Order
+  ### used to place stop limit sell order
   """
 
   def place_stop_limit_sell_order(instrument_url, symbol, price, stop_price, quantity, time_in_force \\ @good_til_cancelled),
@@ -552,7 +613,8 @@ defmodule ExRobinhood do
 
 
   @doc """
-  Cancel Order
+  ## Cancel Order
+  ### used to cancel an open order
   """
 
   def cancel_order(order_id) do

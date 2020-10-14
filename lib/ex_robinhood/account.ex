@@ -6,6 +6,7 @@ defmodule ExRobinhood.Account do
 
   @credentials %{
     device_token: "",
+    account_url: "",
     mfa_code: "",
     challenge_id: "",
     username: "",
