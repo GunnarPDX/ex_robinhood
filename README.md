@@ -274,7 +274,7 @@ def set_account_url
 ```
 
 ## Place Order
-it's easier to use: `place_market_buy_order`, `place_limit_sell_order`, `etc...`
+it's easier to use: `place_market_buy_order()`, `place_limit_sell_order()`, `etc...`
 #### Used to submit orders
 Args:
 - instrument_URL: the RH URL for the instrument (str)
