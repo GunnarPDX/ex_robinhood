@@ -2,8 +2,6 @@ defmodule ExRobinhood.Endpoints do
 
   @moduledoc """
   Documentation for `ExRobinhood`.`Endpoints`
-
-  Functions return endpoint for req
   """
 
   @api_url "https://api.robinhood.com"
@@ -52,6 +50,9 @@ defmodule ExRobinhood.Endpoints do
 
   def orders(order_id \\ ""),
       do: "#{@api_url}/orders/#{order_id}"
+
+  def cancel_order(order_id),
+      do: "#{@api_url}/orders/#{order_id}/cancel/"
 
   def password_reset,
       do: "#{@api_url}/password_reset/request/"

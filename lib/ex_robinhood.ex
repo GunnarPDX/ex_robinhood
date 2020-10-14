@@ -5,15 +5,34 @@ defmodule ExRobinhood do
   alias ExRobinhood.Account
   alias ExRobinhood.Rest, as: R
 
-  use HTTPoison.Base
-
+  ## HEADER KEYS
   @client_id "c82SH0WZOsabOXGP2sxqcj34FxkvfnWRZBKlBjFS"
 
+  ## ORDER SIDES
+  @buy "buy"
+  @sell "sell"
 
+  ## ORDER TRIGGERS
+  @immediate "immediate"
+  @stop "stop"
+
+  ## ORDER TYPES
+  @market "market"
+  @limit "limit"
+
+  ## TIME IN FORCE
+  @good_for_day "gfd"
+  @good_til_cancelled "gtc"
+
+
+
+  ##------------------------------------------------------------------------
+  ## AUTH
+  ##------------------------------------------------------------------------
   @doc """
   Login
   """
-  @spec login(string, string) :: {:ok, string} | {:error, string}
+  @spec login(String.t(), String.t()) :: {:ok, String.t()} | {:error, String.t()}
 
   def login(username, password) do
     device_token = UUID.uuid4()
@@ -42,15 +61,13 @@ defmodule ExRobinhood do
 
   @doc false
 
-  defp process_auth_response({:ok, %{"access_token" => access_token, "refresh_token" => refresh_token} = body}) do
+  defp process_auth_response({:ok, %{"access_token" => access_token, "refresh_token" => refresh_token} = _body}) do
     Account.update(:access_token, access_token)
     Account.update(:refresh_token, refresh_token)
-    Account.update(:password, "")
-    Account.update(:username, "")
 
     headers = :headers
               |> Account.get()
-              |> Map.merge(%{ "Authorization" => "Bearer " <> access_token}, fn _k, v1, v2 -> v2 end)
+              |> Map.merge(%{ "Authorization" => "Bearer " <> access_token}, fn _k, _v1, v2 -> v2 end)
 
     Account.update(:headers, headers)
 
@@ -65,8 +82,8 @@ defmodule ExRobinhood do
     {:ok, "Challenge Required"}
   end
 
-  defp process_auth_response({:ok, %{"status" => "validated"} = body}) do
-    login_after_challenge
+  defp process_auth_response({:ok, %{"status" => "validated"} = _body}) do
+    login_after_challenge()
   end
 
   defp process_auth_response(body) do
@@ -129,14 +146,14 @@ defmodule ExRobinhood do
   @doc """
   Logout
   """
-  @spec logout :: {:ok, string} | {:error, string}
+  @spec logout :: {:ok, String.t()} | {:error, String.t()}
 
   def logout do
     refresh_token = Account.get(:refresh_token)
 
     body = URI.encode_query(%{
-      "client_id": @client_id,
-      "token": refresh_token
+      "client_id" => @client_id,
+      "token" => refresh_token
     })
 
     Endpoints.logout
@@ -149,6 +166,9 @@ defmodule ExRobinhood do
 
 
 
+  ##------------------------------------------------------------------------
+  ## INFO
+  ##------------------------------------------------------------------------
   @doc """
   User
 
@@ -262,10 +282,8 @@ defmodule ExRobinhood do
       span (str): length of data -> 'day', 'week', 'month', '3month', 'year', or '5year'. Default is 'week'.
       bounds (atom = :extended | :regular): extended or regular trading hours [ default is :regular ]
   """
-  @spec historical_quotes(string, string, string, atom) :: {:ok, map} | {:error, map}
+  @spec historical_quotes(String.t(), String.t(), String.t(), atom) :: {:ok, map} | {:error, map}
   # E.historical_quotes("nvda", "hour", "week", :regular)
-
-  def historical_quotes(symbol, interval, span, bounds)
 
   def historical_quotes(symbol, interval, span),
       do: historical_quotes(symbol, interval, span, :regular)
@@ -309,15 +327,14 @@ defmodule ExRobinhood do
 
   @doc """
   Tickers by Tag
-
   Args: tag - Tags may include but are not limited to:
-                * top-movers
-                * etf
-                * 100-most-popular
-                * mutual-fund
-                * finance
-                * cap-weighted
-                * investment-trust-or-fund
+      * top-movers
+      * etf
+      * 100-most-popular
+      * mutual-fund
+      * finance
+      * cap-weighted
+      * investment-trust-or-fund
   """
 
   def tickers_by_tag(tag) do
@@ -326,30 +343,6 @@ defmodule ExRobinhood do
     |> R.get()
   end
 
-
-
-  @doc false
-  """
-  # Options Chain
-  defp options_chain(id) do
-    Endpoints.chain(id)
-    |> R.get()
-  end
-
-  # Options
-  def options(stock, expiration_dates, option_type) do
-    Endpoints.options(chain_id, expiration_dates, option_type)
-    |> R.get()
-  end
-
-  ...
-
-  def get_option_market_data
-  def options_owned
-  def get_option_marketdata
-  def get_option_chainid
-  def get_option_quote
-  """
 
 
   @doc """
@@ -403,7 +396,7 @@ defmodule ExRobinhood do
   """
 
   def dividends do
-    Endpoints.dividends()
+    Endpoints.dividends
     |> R.get()
   end
 
@@ -413,8 +406,8 @@ defmodule ExRobinhood do
   Positions
   """
 
-  def Positions do
-    Endpoints.positions()
+  def positions do
+    Endpoints.positions
     |> R.get()
   end
 
@@ -431,44 +424,179 @@ defmodule ExRobinhood do
 
 
 
-
-
-
-
-
-
-
+  ##------------------------------------------------------------------------
+  ## ORDERS
+  ##------------------------------------------------------------------------
+  @doc """
+  Place Order
+  Args:
+      instrument_URL (str): the RH URL for the instrument
+      symbol (str): the ticker symbol for the instrument
+      order_type (str): 'market' or 'limit'
+      time_in_force (:enum:`TIME_IN_FORCE`): 'gfd' or 'gtc' (day or until cancelled)
+      trigger (str): 'immediate' or 'stop' enum
+      price (float): The share price you'll accept
+      stop_price (float): The price at which the order becomes a market or limit order
+      quantity (int): The number of shares to buy/sell
+      side (str): BUY or sell
   """
 
-  def place_market_buy_order
+  def place_order(
+        instrument_url,
+        symbol,
+        order_type,
+        time_in_force,
+        trigger,
+        price,
+        stop_price,
+        quantity,
+        side
+      ) do
 
-  def place_limit_buy_order
+    body = %{
+      "account" => nil,
+      "instrument" => instrument_url,
+      "symbol" => symbol,
+      "type" => order_type,
+      "time_in_force" => time_in_force,
+      "trigger" => trigger,
+      "price" => price,
+      "stop_price" => stop_price,
+      "quantity" => quantity,
+      "side" => side
+    }
+    |> Enum.filter(fn {_, v} -> v != nil end)
+    |> Enum.into(%{})
+    |> URI.encode_query()
 
-  def place_stop_loss_buy_order
+    Endpoints.orders
+    |> R.post(body)
 
-  def place_stop_limit_buy_order
+    # TODO: add account to agent and get that data on login
+    # TODO: Sometimes Robinhood asks for another log-in when placing an order
 
-  def place_market_sell_owner
+  end
 
-  def place_limit_sell_order
 
-  def place_stop_loss_sell_order
 
-  def place_stop_limit_sell_order
+  @doc """
+  Place Market Buy Order
+  """
 
-  def submit_sell_order
+  def place_market_buy_order(instrument_url, symbol, quantity, time_in_force \\ @good_til_cancelled),
+      do: place_order(instrument_url, symbol, @market, time_in_force, @immediate, nil, nil, quantity, @buy)
 
-  def submit_buy_order
 
-  def place_order
 
-  def place_buy_order
+  @doc """
+  Place Limit Buy Order
+  """
 
-  def place_sell_order
+  def place_limit_buy_order(instrument_url, symbol, price, quantity, time_in_force \\ @good_til_cancelled),
+      do: place_order(instrument_url, symbol, @limit, time_in_force, @immediate, price, nil, quantity, @buy)
 
-  def get_open_orders
 
-  def cancel_order
-"""
+
+  @doc """
+  Place Stop Loss Buy Order
+  """
+
+  def place_stop_loss_buy_order(instrument_url, symbol, stop_price, quantity, time_in_force \\ @good_til_cancelled),
+      do: place_order(instrument_url, symbol, @market, time_in_force, @stop, nil, stop_price, quantity, @buy)
+
+
+
+  @doc """
+  Place Stop Limit Buy Order
+  """
+
+  def place_stop_limit_buy_order(instrument_url, symbol, price, stop_price, quantity, time_in_force \\ @good_til_cancelled),
+      do: place_order(instrument_url, symbol, @limit, time_in_force, @stop, price, stop_price, quantity, @buy)
+
+
+
+  @doc """
+  Place Market Sell Order
+  """
+
+  def place_market_sell_order(instrument_url, symbol, quantity, time_in_force \\ @good_til_cancelled),
+      do: place_order(instrument_url, symbol, @market, time_in_force, @immediate, nil, nil, quantity, @sell)
+
+
+
+  @doc """
+  Place Limit Sell Order
+  """
+
+  def place_limit_sell_order(instrument_url, symbol, price, quantity, time_in_force \\ @good_til_cancelled),
+      do: place_order(instrument_url, symbol, @limit, time_in_force, @immediate, price, nil, quantity, @sell)
+
+
+
+  @doc """
+  Place Stop Loss Sell Order
+  """
+
+  def place_stop_loss_sell_order(instrument_url, symbol, stop_price, quantity, time_in_force \\ @good_til_cancelled),
+      do: place_order(instrument_url, symbol, @market, time_in_force, @stop, nil, stop_price, quantity, @sell)
+
+
+
+  @doc """
+  Place Stop Limit Sell Order
+  """
+
+  def place_stop_limit_sell_order(instrument_url, symbol, price, stop_price, quantity, time_in_force \\ @good_til_cancelled),
+      do: place_order(instrument_url, symbol, @limit, time_in_force, @stop, price, stop_price, quantity, @sell)
+
+
+
+  @doc """
+  Cancel Order
+  """
+
+  def cancel_order(order_id) do
+    order_id
+    |> Endpoints.cancel_order()
+    |> R.post(nil)
+  end
+
+
+
+  # def cancel_all_orders
+  # def close_all_positions
+
+
+
+
+  ##------------------------------------------------------------------------
+  ## OPTIONS
+  ##------------------------------------------------------------------------
+  # Options Chain
+  # defp options_chain(id) do
+  #   Endpoints.chain(id)
+  #   |> R.get()
+  # end
+  #
+  # Options
+  # def options(stock, expiration_dates, option_type) do
+  #   Endpoints.options(chain_id, expiration_dates, option_type)
+  #   |> R.get()
+  # end
+  #
+  # def get_option_market_data
+  # def options_owned
+  # def get_option_marketdata
+  # def get_option_chainid
+  # def get_option_quote
+  # def cancel_option_order
+  # def cancel_all_options_orders
+
+
+
+  ##------------------------------------------------------------------------
+  ## CRYPTO
+  ##------------------------------------------------------------------------
+
 
 end
