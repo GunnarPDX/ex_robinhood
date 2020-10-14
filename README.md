@@ -265,7 +265,7 @@ def cancel_order(order_id)
 
 
 # MSC...
-#### (these shouldn't ever be needed)
+#### (these shouldn't be needed)
 
 ## Set Account Data (function)
 #### You can run this if it fails to run automatically during login, its needed for placing orders.
@@ -274,8 +274,7 @@ def set_account_url
 ```
 
 ## Place Order
-#### (this shouldn't be used normally) 
-~~> see: `place_market_buy_order`, `place_limit_sell_order`, `etc...`
+it's easier to use: `place_market_buy_order`, `place_limit_sell_order`, `etc...`
 #### Used to submit orders
 Args:
 - instrument_URL: the RH URL for the instrument (str)
