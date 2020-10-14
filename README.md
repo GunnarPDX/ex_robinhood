@@ -1,4 +1,5 @@
-# ExRobinhood
+![alt text](./ex_robinhood_logo.png?raw=true)
+# 
 
 A Robinhood API client for Elixir.  Currently under development.
 
@@ -687,7 +688,7 @@ def cancel_order(order_id)
 # MSC...
 #### (these shouldn't be needed)
 
-## Set Account Data (function)
+## Set Account Data
 #### You can run this if it fails to run automatically during login, its needed for placing orders.
 ```elixir
 def set_account_url
