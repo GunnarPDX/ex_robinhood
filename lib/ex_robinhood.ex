@@ -262,7 +262,7 @@ defmodule ExRobinhood do
   """
 
   def quote_list(ids) when is_list(ids) do
-    "?symbols=" <> E.join(ids, ",")
+    "?symbols=" <> E.join(ids, ",") <> ",#"
     |> Endpoints.quotes()
     |> R.get()
   end
@@ -280,7 +280,7 @@ defmodule ExRobinhood do
   ### Gets marketdata for stocks
   """
 
-  # TODO: symbols or ids?
+  # TODO: urls as arg?
   def stock_marketdata(symbols) when is_list(symbols) do
     "quotes/?instruments=" <> E.join(symbols, ",")
     |> Endpoints.market_data()

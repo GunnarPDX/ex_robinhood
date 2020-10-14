@@ -27,6 +27,7 @@ defmodule ExRobinhood.Rest do
   @doc false
 
   defp handle_resp({:ok, resp}) do
+    IO.inspect(resp)
     body = resp.headers
            |> decode_response_content(resp.body)
            |> Jason.decode!()
@@ -34,8 +35,12 @@ defmodule ExRobinhood.Rest do
     {:ok, body}
   end
 
-  defp handle_resp({:error, message}) do
-    reason = Jason.decode!(message)
+  defp handle_resp({:error, resp}) do
+    IO.inspect(resp)
+    reason = resp.headers
+             |> decode_response_content(resp.body)
+             |> Jason.decode!()
+
     {:error, reason}
   end
 
