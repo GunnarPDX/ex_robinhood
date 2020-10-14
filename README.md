@@ -1,4 +1,4 @@
-![alt text](./ex_robinhood_logo.png?raw=true)
+![alt text](./ex_robinhood_logo.svg?raw=true)
 # 
 
 A Robinhood API client for Elixir.  Currently under development.
