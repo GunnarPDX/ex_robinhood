@@ -4,10 +4,21 @@ defmodule ExRobinhood.MixProject do
   def project do
     [
       app: :ex_robinhood,
-      version: "0.1.0",
+      version: "0.0.0",
       elixir: "~> 1.10",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      description: "A Elixir client for the Robinhood API",
+      package: package()
+    ]
+  end
+
+  defp package do
+    [
+      files: ["lib", "mix.exs", "README*"],
+      maintainers: ["Gunnar Rosenberg"],
+      licenses: ["MIT"],
+      links: %{"GitHub" => "https://github.com/GunnarPDX/ex_robinhood"}
     ]
   end
 
