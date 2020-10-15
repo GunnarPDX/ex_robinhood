@@ -1,5 +1,8 @@
 ![alt text](https://github.com/GunnarPDX/ex_robinhood/blob/master/ex_robinhood_logo.svg?raw=true)
 # 
+[![MIT License](https://img.shields.io/apm/l/atomic-design-ui.svg?)](https://github.com/GunnarPDX/ex_robinhood/blob/master/LICENSE)
+[![Hex.pm Version](http://img.shields.io/hexpm/v/ex_robinhood.svg?style=flat)](https://hex.pm/packages/ex_robinhood)
+
 
 A Robinhood API client for Elixir.  Currently under development.
 
@@ -10,7 +13,7 @@ The package can be installed by adding `ex_robinhood` to your list of dependenci
 ```elixir
 def deps do
   [
-    {:ex_robinhood, "~> 0.0.0"} # NOT AVAILABLE ON HEX YET !!!
+    {:ex_robinhood, "~> 0.0.0"}
   ]
 end
 ```
